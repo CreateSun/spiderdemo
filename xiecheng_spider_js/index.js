@@ -1,12 +1,12 @@
 const puppeteer = require('puppeteer');
+const fs = require("fs")
 
+const urlFunc = (page) => `https://you.ctrip.com/travels/shanghai2/t2${page > 1 ? '-p' + page : ''}.html`
 
-const urlFunc = (page) => `https://you.ctrip.com/travels/shanghai2/t2${page ? '-p' + page : ''}.html`
+const pageList = [1, 2, 3, 4, 5]
+// const pageList = [1,2]
 
-// const pageList = [2, 3, 4, 5]
-const pageList = [2]
-
-
+let data = {}
 
 const main = async () => {
     // 启动浏览器
@@ -14,15 +14,15 @@ const main = async () => {
         headless: false, // 默认是无头模式，这里为了示范所以使用正常模式
     })
 
-    pageList.forEach(async num => {
+    pageList.forEach(async (num, index) => {
         // 控制浏览器打开新标签页面
         const url = urlFunc(num)
         const page = await browser.newPage()
         // 在新标签中打开要爬取的网页
-        await page.goto('https://you.ctrip.com/travels/shanghai2/t2-p2.html')
+        await page.goto(url)
 
         // 使用evaluate方法在浏览器中执行传入函数（完全的浏览器环境，所以函数内可以直接使用window、document等所有对象和方法）
-        let data = await page.evaluate(() => {
+        let res = await page.evaluate(() => {
             let list = document.querySelectorAll('.journalslist .journal-item')
             let res = []
             for (let i = 0; i < list.length; i++) {
@@ -35,8 +35,19 @@ const main = async () => {
             }
             return res
         })
-        console.log(data)
+        Object.assign(data, { ['page' + num]: res })
+        console.log(index, pageList.length - 1)
+        if (index == pageList.length - 1) {
+            console.log(data)
+            await fs.writeFileSync("data.json", JSON.stringify({ data }), {
+                encoding: 'utf-8'
+            })
+        }
     })
+
+
+
+    // browser.close()
 
 }
 
